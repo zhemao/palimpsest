@@ -1,14 +1,18 @@
-# palimpsest
+# Palimpsest
 
-A ClojureScript library designed to ... well, that part is up to you.
+Palimpsest is an experimental HTML5 Canvas-based drawing application.
+It is written in Clojurescript.
 
-## Usage
+It is currently rather bare-bones, with support for simple pencil lines and
+undo/redo functionality.
 
-FIXME
+## Using the application
+
+In the project directory, run `lein cljsbuild once`, then open up the
+`dev-resources/public/index.html` file.
 
 ## License
 
-Copyright © 2014 FIXME
+Copyright 2014 Howard Zhehao Mao
 
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+Distributed under the BSD License
