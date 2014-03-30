@@ -13,7 +13,8 @@
 
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/clojurescript "0.0-2138"]
-                 [org.clojure/core.async "0.1.278.0-76b25b-alpha"]]
+                 [org.clojure/core.async "0.1.278.0-76b25b-alpha"]
+                 [rm-hull/monet "0.1.10"]]
 
   :plugins [[lein-cljsbuild "1.0.1"]]
 
