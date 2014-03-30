@@ -45,7 +45,9 @@
       (swap! dragging #(-> true)))))
 
 (defn mouseup-handler [event]
-  (swap! dragging #(-> false)))
+  (when (= 0 (.-button event))
+    (swap! undone-strokes #())
+    (swap! dragging #(-> false))))
 
 (defn keyevent->char [event]
   (let [kc (.-keyCode event)]
@@ -55,18 +57,20 @@
         (+ kc 32) kc))))
 
 (defn undo-stroke []
-  (let [last-stroke (last @drawn-strokes)]
-    (swap! drawn-strokes (comp vec drop-last))
-    (swap! undone-strokes conj last-stroke))
-  (drawing/clear-screen canvas-context)
-  (doseq [stroke @drawn-strokes]
-    (drawing/draw-stroke canvas-context stroke)))
+  (when-not (empty? @drawn-strokes)
+    (let [last-stroke (last @drawn-strokes)]
+      (swap! drawn-strokes (comp vec drop-last))
+      (swap! undone-strokes conj last-stroke))
+    (drawing/clear-screen canvas-context)
+    (doseq [stroke @drawn-strokes]
+      (drawing/draw-stroke canvas-context stroke))))
 
 (defn redo-stroke []
-  (let [last-undone (first @undone-strokes)]
-    (swap! drawn-strokes conj last-undone)
-    (swap! undone-strokes rest)
-    (drawing/draw-stroke canvas-context last-undone)))
+  (when-not (empty? @undone-strokes)
+    (let [last-undone (first @undone-strokes)]
+      (swap! drawn-strokes conj last-undone)
+      (swap! undone-strokes rest)
+      (drawing/draw-stroke canvas-context last-undone))))
 
 (defn keydown-handler [event]
   (case (keyevent->char event)
