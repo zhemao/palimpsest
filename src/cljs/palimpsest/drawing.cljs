@@ -16,6 +16,7 @@
 
 (defn draw-stroke [ctx stroke]
   (canvas/begin-path ctx)
+  (canvas/stroke-width ctx (:thickness stroke))
   (let [coords (:coords stroke)]
     (move-to-coord ctx (first coords))
     (doseq [c (rest coords)]

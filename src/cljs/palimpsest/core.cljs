@@ -10,6 +10,7 @@
             [goog.events :as events]
             [monet.canvas :as canvas]
             [palimpsest.drawing :as drawing]
+            [palimpsest.keyevent :refer [event->char]]
             [palimpsest.types :refer [Coord Stroke
                                       last-coord extend-last-stroke]]
             [cljs.core.async :refer [put! chan <!]]))
@@ -25,6 +26,7 @@
 (def dragging (atom false))
 (def drawn-strokes (atom []))
 (def undone-strokes (atom '()))
+(def stroke-thickness (atom 1))
 
 (defn event->coord [event]
   (let [canvasrect (.getBoundingClientRect canvas-element)]
@@ -35,26 +37,20 @@
   (when @dragging
     (let [from-coord (last-coord @drawn-strokes)
           to-coord (event->coord event)]
+      (canvas/stroke-width canvas-context @stroke-thickness)
       (drawing/draw-line canvas-context from-coord to-coord)
       (swap! drawn-strokes extend-last-stroke to-coord))))
 
 (defn mousedown-handler [event]
   (when (= 0 (.-button event))
     (let [coord (event->coord event)]
-      (swap! drawn-strokes conj (Stroke. [coord] 1))
+      (swap! drawn-strokes conj (Stroke. [coord] @stroke-thickness))
       (swap! dragging #(-> true)))))
 
 (defn mouseup-handler [event]
   (when (= 0 (.-button event))
     (swap! undone-strokes #())
     (swap! dragging #(-> false))))
-
-(defn keyevent->char [event]
-  (let [kc (.-keyCode event)]
-    (char
-      (if (and (> kc 64) (<= kc 90)
-               (not (.-shiftKey event)))
-        (+ kc 32) kc))))
 
 (defn undo-stroke []
   (when-not (empty? @drawn-strokes)
@@ -72,10 +68,25 @@
       (swap! undone-strokes rest)
       (drawing/draw-stroke canvas-context last-undone))))
 
+(defn update-statusbar []
+  (set! (.-innerHTML (dom/getElement "stroke-thickness")) @stroke-thickness))
+
+(defn inc-thickness []
+  (swap! stroke-thickness #(if (= % 50) % (inc %)))
+  (update-statusbar))
+
+(defn dec-thickness []
+  (swap! stroke-thickness #(if (zero? %) % (dec %)))
+  (update-statusbar))
+
 (defn keydown-handler [event]
-  (case (keyevent->char event)
-    \u (undo-stroke)
-    \r (redo-stroke)))
+  (let [keychar (event->char event)]
+    (case keychar
+      \u (undo-stroke)
+      \r (redo-stroke)
+      \+ (inc-thickness)
+      \- (dec-thickness)
+      (.log js/console (str "Unused key " keychar)))))
 
 (defn resize-canvas [_]
   (set! (.-width canvas-element)
