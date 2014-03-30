@@ -9,6 +9,9 @@
   (:require [goog.dom :as dom]
             [goog.events :as events]
             [monet.canvas :as canvas]
+            [palimpsest.drawing :as drawing]
+            [palimpsest.types :refer [Coord Stroke
+                                      last-coord extend-last-stroke]]
             [cljs.core.async :refer [put! chan <!]]))
 
 (def container-element (dom/getElement "container"))
@@ -20,39 +23,67 @@
     (events/listen canvas-element typ cb)))
 
 (def dragging (atom false))
-(def last-coords (atom [0 0]))
+(def drawn-strokes (atom []))
+(def undone-strokes (atom '()))
 
-(defn get-coords [event]
+(defn event->coord [event]
   (let [canvasrect (.getBoundingClientRect canvas-element)]
-    [(- (.-clientX event) (.-left canvasrect))
-     (- (.-clientY event) (.-top canvasrect))]))
-
-(defn draw-line [ctx [from-x from-y] [to-x to-y]]
-  (canvas/begin-path ctx)
-  (canvas/move-to ctx from-x from-y)
-  (canvas/line-to ctx to-x to-y)
-  (canvas/stroke ctx)
-  (canvas/close-path ctx))
+    (Coord. (- (.-clientX event) (.-left canvasrect))
+            (- (.-clientY event) (.-top canvasrect)))))
 
 (defn mousemove-handler [event]
   (when @dragging
-    (let [coords (get-coords event)]
-      (draw-line canvas-context @last-coords coords)
-      (swap! last-coords (fn [_] coords)))))
+    (let [from-coord (last-coord @drawn-strokes)
+          to-coord (event->coord event)]
+      (drawing/draw-line canvas-context from-coord to-coord)
+      (swap! drawn-strokes extend-last-stroke to-coord))))
 
 (defn mousedown-handler [event]
-  (swap! last-coords (fn [_] (get-coords event)))
-  (swap! dragging (fn [_] true)))
+  (when (= 0 (.-button event))
+    (let [coord (event->coord event)]
+      (swap! drawn-strokes conj (Stroke. [coord] 1))
+      (swap! dragging #(-> true)))))
 
 (defn mouseup-handler [event]
-  (swap! dragging (fn [_] false)))
+  (swap! dragging #(-> false)))
 
-(defn init []
+(defn keyevent->char [event]
+  (let [kc (.-keyCode event)]
+    (char
+      (if (and (> kc 64) (<= kc 90)
+               (not (.-shiftKey event)))
+        (+ kc 32) kc))))
+
+(defn undo-stroke []
+  (let [last-stroke (last @drawn-strokes)]
+    (swap! drawn-strokes (comp vec drop-last))
+    (swap! undone-strokes conj last-stroke))
+  (drawing/clear-screen canvas-context)
+  (doseq [stroke @drawn-strokes]
+    (drawing/draw-stroke canvas-context stroke)))
+
+(defn redo-stroke []
+  (let [last-undone (first @undone-strokes)]
+    (swap! drawn-strokes conj last-undone)
+    (swap! undone-strokes rest)
+    (drawing/draw-stroke canvas-context last-undone)))
+
+(defn keydown-handler [event]
+  (case (keyevent->char event)
+    \u (undo-stroke)
+    \r (redo-stroke)))
+
+(defn resize-canvas [_]
   (set! (.-width canvas-element)
         (-> (.getBoundingClientRect canvas-element) (.-width)))
   (set! (.-height canvas-element)
-        (-> (.getBoundingClientRect canvas-element) (.-height)))
+        (-> (.getBoundingClientRect canvas-element) (.-height))))
+
+(defn init []
+  (resize-canvas nil)
+  (events/listen document/body "keydown" keydown-handler)
   (add-canvas-handlers
+    ["resize"    resize-canvas]
     ["mousemove" mousemove-handler]
     ["mousedown" mousedown-handler]
     ["mouseup"   mouseup-handler])
