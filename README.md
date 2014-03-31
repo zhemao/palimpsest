@@ -3,8 +3,8 @@
 Palimpsest is an experimental HTML5 Canvas-based drawing application.
 It is written in Clojurescript.
 
-It is currently rather bare-bones, with support for simple pencil lines and
-undo/redo functionality.
+It is currently rather bare-bones, with support for simple pencil lines
+of variable thickness and basic undo/redo functionality.
 
 ## Using the application
 
