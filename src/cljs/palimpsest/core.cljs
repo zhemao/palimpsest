@@ -28,6 +28,7 @@
 (def drawn-strokes (atom []))
 (def undone-strokes (atom '()))
 (def stroke-thickness (atom 1))
+(def current-touch-id (atom nil))
 
 (defn event->coord [event]
   (let [canvasrect (.getBoundingClientRect canvas-element)]
@@ -59,6 +60,26 @@
 (defn mouseup-handler [event]
   (when (= 0 (.-button event))
     (finish-stroke)))
+
+(defn touchstart-handler [event]
+  (let [touches (filter #(> (.-force %) 0.0) (.-targetTouches event))]
+    (when-not (empty? touches)
+      (swap! current-touch-id #(-> (first touches) .-identifier))
+      (start-stroke (event->coord (first touches))))))
+
+(defn find-matching-touch [touches]
+  (let [matching (filter #(= @current-touch-id (.-identifier %)) touches)]
+    (if (empty? matching) nil (first matching))))
+
+(defn touchmove-handler [event]
+  (let [touch (find-matching-touch (.-targetTouches event))]
+    (when (and (not (nil? touch)) @dragging)
+      (add-drawn-coord (event->coord touch)))))
+
+(defn touchend-handler [event]
+  (let [touch (find-matching-touch (.-targetTouches event))]
+    (when-not (nil? touch)
+      (finish-stroke))))
 
 (defn redraw-all-strokes [ctx strokes]
   (drawing/clear-screen ctx)
@@ -142,9 +163,12 @@
   (setup-click-handler ["increase-thickness", "decrease-thickness"])
   (setup-input-handler ["stroke-thickness"])
   (add-canvas-handlers
-    ["mousemove" mousemove-handler]
-    ["mousedown" mousedown-handler]
-    ["mouseup"   mouseup-handler])
+    ["touchmove"  touchmove-handler]
+    ["touchstart" touchstart-handler]
+    ["touchend"   touchend-handler]
+    ["mousemove"  mousemove-handler]
+    ["mousedown"  mousedown-handler]
+    ["mouseup"    mouseup-handler])
   (canvas/fill-style canvas-context "#000"))
 
 (init)
