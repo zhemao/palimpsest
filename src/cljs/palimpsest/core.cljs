@@ -33,24 +33,31 @@
     (Coord. (- (.-clientX event) (.-left canvasrect))
             (- (.-clientY event) (.-top canvasrect)))))
 
-(defn mousemove-handler [event]
-  (when @dragging
-    (let [from-coord (last-coord @drawn-strokes)
-          to-coord (event->coord event)]
-      (canvas/stroke-width canvas-context @stroke-thickness)
-      (drawing/draw-line canvas-context from-coord to-coord)
-      (swap! drawn-strokes extend-last-stroke to-coord))))
+(defn start-stroke [coord]
+    (swap! drawn-strokes conj (Stroke. [coord] @stroke-thickness))
+    (swap! dragging #(-> true)))
+
+(defn finish-stroke []
+    (swap! undone-strokes #())
+    (swap! dragging #(-> false)))
 
 (defn mousedown-handler [event]
   (when (= 0 (.-button event))
-    (let [coord (event->coord event)]
-      (swap! drawn-strokes conj (Stroke. [coord] @stroke-thickness))
-      (swap! dragging #(-> true)))))
+    (start-stroke (event->coord event))))
+
+(defn add-drawn-coord [coord]
+    (let [from-coord (last-coord @drawn-strokes)]
+      (canvas/stroke-width canvas-context @stroke-thickness)
+      (drawing/draw-line canvas-context from-coord coord)
+      (swap! drawn-strokes extend-last-stroke coord)))
+
+(defn mousemove-handler [event]
+  (when @dragging
+    (add-drawn-coord (event->coord event))))
 
 (defn mouseup-handler [event]
   (when (= 0 (.-button event))
-    (swap! undone-strokes #())
-    (swap! dragging #(-> false))))
+    (finish-stroke)))
 
 (defn redraw-all-strokes [ctx strokes]
   (drawing/clear-screen ctx)
@@ -100,9 +107,9 @@
       (set! (-> canvas-element .-style .-width) (str window/innerWidth "px"))
       (set! (.-height (.-style canvas-element)) (str desired-height "px"))))
   (set! (.-width canvas-element)
-        (-> (.getBoundingClientRect canvas-element) (.-width)))
+        (-> (.getBoundingClientRect canvas-element) .-width))
   (set! (.-height canvas-element)
-        (-> (.getBoundingClientRect canvas-element) (.-height)))
+        (-> (.getBoundingClientRect canvas-element) .-height))
   (redraw-all-strokes canvas-context @drawn-strokes))
 
 (defn init []
