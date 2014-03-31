@@ -79,7 +79,7 @@
       (drawing/draw-stroke canvas-context last-undone))))
 
 (defn update-statusbar []
-  (set! (.-innerHTML (dom/getElement "stroke-thickness")) @stroke-thickness))
+  (set! (.-value (dom/getElement "stroke-thickness")) @stroke-thickness))
 
 (defn inc-thickness []
   (swap! stroke-thickness #(if (= % 50) % (inc %)))
@@ -97,6 +97,28 @@
       \+ (inc-thickness)
       \- (dec-thickness)
       (.log js/console (str "Unused key " keychar)))))
+
+(defn click-handler [event]
+  (let [target-id (-> event .-currentTarget .-id)]
+    (case target-id
+      "increase-thickness" (inc-thickness)
+      "decrease-thickness" (dec-thickness)
+      (.log js/console (str "unknown target " target-id)))))
+
+(defn setup-click-handler [elem-ids]
+  (doseq [id elem-ids]
+    (events/listen (dom/getElement id) "click" click-handler)))
+
+(defn input-handler [event]
+  (let [target-id (-> event .-currentTarget .-id)]
+    (let [value (.-value (dom/getElement target-id))]
+      (case target-id
+        "stroke-thickness" (swap! stroke-thickness #(int value))
+        (.log js/console (str "Unknown target " target-id))))))
+
+(defn setup-input-handler [elem-ids]
+  (doseq [id elem-ids]
+    (events/listen (dom/getElement id) "input" input-handler)))
 
 (defn resize-canvas [_]
   (let [title-rect  (.getBoundingClientRect (dom/getElement "titlebar"))
@@ -116,6 +138,8 @@
   (resize-canvas nil)
   (events/listen document/body "keydown" keydown-handler)
   (events/listen js/window "resize" resize-canvas)
+  (setup-click-handler ["increase-thickness", "decrease-thickness"])
+  (setup-input-handler ["stroke-thickness"])
   (add-canvas-handlers
     ["mousemove" mousemove-handler]
     ["mousedown" mousedown-handler]

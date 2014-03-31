@@ -24,6 +24,10 @@ html, body {
   display: inline-block;
 }
 
+#stroke-thickness {
+  width: 20px;
+}
+
 canvas {
   display: block;
 }
