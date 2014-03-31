@@ -10,11 +10,13 @@
 </head>
 
 <body>
-  <h1>Palimpsest</h1>
+  <p id="titlebar">palimpsest</p>
   <canvas id="canvas"></canvas>
-  <script src="js/palimpsest.js"></script>
   <div id="statusbar">
-    <span id="stroke-thickness">1</span>
+    <span id="stroke-thickness-container">
+      T: <span id="stroke-thickness">1</span>
+    </span>
   </div>
+  <script src="js/palimpsest.js"></script>
 </body>
 </html>

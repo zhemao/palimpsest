@@ -52,14 +52,17 @@
     (swap! undone-strokes #())
     (swap! dragging #(-> false))))
 
+(defn redraw-all-strokes [ctx strokes]
+  (drawing/clear-screen ctx)
+  (doseq [stroke strokes]
+    (drawing/draw-stroke ctx stroke)))
+
 (defn undo-stroke []
   (when-not (empty? @drawn-strokes)
     (let [last-stroke (last @drawn-strokes)]
       (swap! drawn-strokes (comp vec drop-last))
       (swap! undone-strokes conj last-stroke))
-    (drawing/clear-screen canvas-context)
-    (doseq [stroke @drawn-strokes]
-      (drawing/draw-stroke canvas-context stroke))))
+    (redraw-all-strokes canvas-context @drawn-strokes)))
 
 (defn redo-stroke []
   (when-not (empty? @undone-strokes)
@@ -89,16 +92,24 @@
       (.log js/console (str "Unused key " keychar)))))
 
 (defn resize-canvas [_]
+  (let [title-rect  (.getBoundingClientRect (dom/getElement "titlebar"))
+        status-rect (.getBoundingClientRect (dom/getElement "statusbar"))]
+    (let [desired-height (- window/innerHeight
+                            (.-height title-rect)
+                            (.-height status-rect))]
+      (set! (-> canvas-element .-style .-width) (str window/innerWidth "px"))
+      (set! (.-height (.-style canvas-element)) (str desired-height "px"))))
   (set! (.-width canvas-element)
         (-> (.getBoundingClientRect canvas-element) (.-width)))
   (set! (.-height canvas-element)
-        (-> (.getBoundingClientRect canvas-element) (.-height))))
+        (-> (.getBoundingClientRect canvas-element) (.-height)))
+  (redraw-all-strokes canvas-context @drawn-strokes))
 
 (defn init []
   (resize-canvas nil)
   (events/listen document/body "keydown" keydown-handler)
+  (events/listen js/window "resize" resize-canvas)
   (add-canvas-handlers
-    ["resize"    resize-canvas]
     ["mousemove" mousemove-handler]
     ["mousedown" mousedown-handler]
     ["mouseup"   mouseup-handler])

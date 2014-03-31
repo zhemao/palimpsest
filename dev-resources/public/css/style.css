@@ -5,12 +5,21 @@ html, body {
   height: 100%;
 }
 
-h1 {
-  text-align: center;
+#titlebar {
+  font-size: 14pt;
+}
+
+#titlebar, #statusbar {
+  padding: 10px;
+  background-color: #00f;
+}
+
+#stroke-thickness-container {
+  margin: 5px;
+  padding: 5px;
+  border: 1px solid black;
 }
 
 canvas {
   display: block;
-  width: 100%;
-  height: 100%;
 }
