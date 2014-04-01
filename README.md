@@ -1,7 +1,7 @@
 # Palimpsest
 
-Palimpsest is an experimental HTML5 Canvas-based drawing application.
-It is written in Clojurescript.
+Palimpsest is an experimental HTML5 Canvas-based drawing application
+meant to be used on touchscreen devices. It is written in Clojurescript.
 
 It is currently rather bare-bones, with support for simple pencil lines
 of variable thickness and basic undo/redo functionality.
