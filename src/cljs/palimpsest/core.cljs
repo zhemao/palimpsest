@@ -61,23 +61,35 @@
   (when (= 0 (.-button event))
     (finish-stroke)))
 
-(defn touchstart-handler [event]
-  (let [touches (filter #(> (.-force %) 0.0) (.-targetTouches event))]
-    (when-not (empty? touches)
-      (swap! current-touch-id #(-> (first touches) .-identifier))
-      (start-stroke (event->coord (first touches))))))
+(defn identified-touch [touchlist]
+  (let [target-id @current-touch-id
+        touchseq (for [i (range (.-length touchlist))] (.item touchlist i))
+        matching (filter #(= target-id (.-identifier %)) touchseq)]
+    (if-not (empty? matching)
+      (first matching) nil)))
 
-(defn find-matching-touch [touches]
-  (let [matching (filter #(= @current-touch-id (.-identifier %)) touches)]
-    (if (empty? matching) nil (first matching))))
+(defn first-touch [touchlist]
+  (.item touchlist 0))
+
+(defn touchstart-handler [event]
+  (let [touchlist (-> event .getBrowserEvent .-targetTouches)]
+    (when (not= (.-length touchlist) 0)
+      (let [touch (first-touch touchlist)]
+        (pathfinder/log (.-identifier touch))
+        (swap! current-touch-id #(.-identifier touch))
+        (start-stroke (event->coord touch))))))
 
 (defn touchmove-handler [event]
-  (let [touch (find-matching-touch (.-targetTouches event))]
+  (let [touchlist (-> event .getBrowserEvent .-targetTouches)
+        touch (identified-touch touchlist)]
+    (pathfinder/log (.-identifier touch))
     (when (and (not (nil? touch)) @dragging)
       (add-drawn-coord (event->coord touch)))))
 
 (defn touchend-handler [event]
-  (let [touch (find-matching-touch (.-targetTouches event))]
+  (let [touchlist (-> event .getBrowserEvent .-changedTouches)
+        touch (identified-touch touchlist)]
+    (pathfinder/log (.-identifier touch))
     (when-not (nil? touch)
       (finish-stroke))))
 
@@ -171,4 +183,7 @@
     ["mouseup"    mouseup-handler])
   (canvas/fill-style canvas-context "#000"))
 
-(init)
+(try
+  (init)
+  (catch js/Object e
+    (pathfinder/log e)))
