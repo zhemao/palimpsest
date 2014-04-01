@@ -25,7 +25,7 @@
   (canvas/close-path ctx))
 
 (defn clear-screen [ctx]
-  (let [canvas (.-canvas ctx)]
-    (let [w (.-width canvas)
-          h (.-height canvas)]
-      (canvas/clear-rect ctx {:x 0 :y 0 :w w :h h}))))
+  (let [canvas (.-canvas ctx)
+        w (.-width canvas)
+        h (.-height canvas)]
+      (canvas/clear-rect ctx {:x 0 :y 0 :w w :h h})))

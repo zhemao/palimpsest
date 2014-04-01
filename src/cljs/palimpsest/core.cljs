@@ -144,11 +144,11 @@
     (events/listen (dom/getElement id) "click" click-handler)))
 
 (defn input-handler [event]
-  (let [target-id (-> event .-currentTarget .-id)]
-    (let [value (.-value (dom/getElement target-id))]
-      (case target-id
-        "stroke-thickness" (swap! stroke-thickness #(int value))
-        (pathfinder/log (str "Unknown target " target-id))))))
+  (let [target-id (-> event .-currentTarget .-id)
+        value (.-value (dom/getElement target-id))]
+    (case target-id
+      "stroke-thickness" (swap! stroke-thickness #(int value))
+      (pathfinder/log (str "Unknown target " target-id)))))
 
 (defn setup-input-handler [elem-ids]
   (doseq [id elem-ids]
@@ -156,17 +156,17 @@
 
 (defn resize-canvas [_]
   (let [title-rect  (.getBoundingClientRect (dom/getElement "titlebar"))
-        status-rect (.getBoundingClientRect (dom/getElement "statusbar"))]
-    (let [desired-height (- window/innerHeight
-                            (.-height title-rect)
-                            (.-height status-rect))]
-      (set! (-> canvas-element .-style .-width) (str window/innerWidth "px"))
-      (set! (.-height (.-style canvas-element)) (str desired-height "px"))))
-  (set! (.-width canvas-element)
-        (-> (.getBoundingClientRect canvas-element) .-width))
-  (set! (.-height canvas-element)
-        (-> (.getBoundingClientRect canvas-element) .-height))
-  (redraw-all-strokes canvas-context @drawn-strokes))
+        status-rect (.getBoundingClientRect (dom/getElement "statusbar"))
+        desired-height (- window/innerHeight
+                          (.-height title-rect)
+                          (.-height status-rect))]
+    (set! (-> canvas-element .-style .-width) (str window/innerWidth "px"))
+    (set! (.-height (.-style canvas-element)) (str desired-height "px"))
+    (set! (.-width canvas-element)
+          (-> (.getBoundingClientRect canvas-element) .-width))
+    (set! (.-height canvas-element)
+          (-> (.getBoundingClientRect canvas-element) .-height))
+    (redraw-all-strokes canvas-context @drawn-strokes)))
 
 (defn init []
   (resize-canvas nil)
