@@ -9,6 +9,7 @@
   (:require [goog.dom :as dom]
             [goog.events :as events]
             [monet.canvas :as canvas]
+            [palimpsest.pathfinder :as pathfinder]
             [palimpsest.drawing :as drawing]
             [palimpsest.keyevent :refer [event->char]]
             [palimpsest.types :refer [Coord Stroke
@@ -96,14 +97,14 @@
       \r (redo-stroke)
       \+ (inc-thickness)
       \- (dec-thickness)
-      (.log js/console (str "Unused key " keychar)))))
+      (pathfinder/log (str "Unused key " keychar)))))
 
 (defn click-handler [event]
   (let [target-id (-> event .-currentTarget .-id)]
     (case target-id
       "increase-thickness" (inc-thickness)
       "decrease-thickness" (dec-thickness)
-      (.log js/console (str "unknown target " target-id)))))
+      (pathfinder/log (str "unknown target " target-id)))))
 
 (defn setup-click-handler [elem-ids]
   (doseq [id elem-ids]
@@ -114,7 +115,7 @@
     (let [value (.-value (dom/getElement target-id))]
       (case target-id
         "stroke-thickness" (swap! stroke-thickness #(int value))
-        (.log js/console (str "Unknown target " target-id))))))
+        (pathfinder/log (str "Unknown target " target-id))))))
 
 (defn setup-input-handler [elem-ids]
   (doseq [id elem-ids]
