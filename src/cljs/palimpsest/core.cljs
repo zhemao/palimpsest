@@ -11,7 +11,6 @@
             [monet.canvas :as canvas]
             [palimpsest.pathfinder :as pathfinder]
             [palimpsest.drawing :as drawing]
-            [palimpsest.keyevent :refer [event->char]]
             [palimpsest.types :refer [Coord Stroke
                                       last-coord extend-last-stroke]]
             [cljs.core.async :refer [put! chan <!]]))
@@ -123,15 +122,6 @@
   (swap! stroke-thickness #(if (zero? %) % (dec %)))
   (update-statusbar))
 
-(defn keydown-handler [event]
-  (let [keychar (event->char event)]
-    (case keychar
-      \u (undo-stroke)
-      \r (redo-stroke)
-      \+ (inc-thickness)
-      \- (dec-thickness)
-      (pathfinder/log (str "Unused key " keychar)))))
-
 (defn click-handler [event]
   (let [target-id (-> event .-currentTarget .-id)]
     (case target-id
@@ -172,7 +162,6 @@
 
 (defn init []
   (resize-canvas nil)
-  (events/listen document/body "keydown" keydown-handler)
   (events/listen js/window "resize" resize-canvas)
   (setup-click-handler ["increase-thickness" "decrease-thickness"
                         "undo" "redo"])
