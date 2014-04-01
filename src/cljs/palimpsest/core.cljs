@@ -137,6 +137,8 @@
     (case target-id
       "increase-thickness" (inc-thickness)
       "decrease-thickness" (dec-thickness)
+      "undo" (undo-stroke)
+      "redo" (redo-stroke)
       (pathfinder/log (str "unknown target " target-id)))))
 
 (defn setup-click-handler [elem-ids]
@@ -172,7 +174,8 @@
   (resize-canvas nil)
   (events/listen document/body "keydown" keydown-handler)
   (events/listen js/window "resize" resize-canvas)
-  (setup-click-handler ["increase-thickness", "decrease-thickness"])
+  (setup-click-handler ["increase-thickness" "decrease-thickness"
+                        "undo" "redo"])
   (setup-input-handler ["stroke-thickness"])
   (add-canvas-handlers
     ["touchmove"  touchmove-handler]
