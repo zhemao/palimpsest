@@ -13,13 +13,15 @@
   <p id="titlebar">palimpsest</p>
   <canvas id="canvas"></canvas>
   <div id="statusbar">
-    <span id="stroke-thickness-container">
+    <span class="control-container">
       Thickness: <input id="stroke-thickness" value="1"></input>
+      <button id="increase-thickness">+</button>
+      <button id="decrease-thickness">-</button>
     </span>
-    <button id="increase-thickness">+</button>
-    <button id="decrease-thickness">-</button>
-    <button id="undo">undo</button>
-    <button id="redo">redo</button>
+    <span class="control-container">
+      <button id="undo">undo</button>
+      <button id="redo">redo</button>
+    </span>
   </div>
   <script src="js/palimpsest.js"></script>
 </body>
