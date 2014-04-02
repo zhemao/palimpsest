@@ -28,37 +28,86 @@
 (def undone-strokes (atom '()))
 (def stroke-thickness (atom 1))
 (def current-touch-id (atom nil))
+(def input-mode (atom :draw))
+(def last-pan-coord (atom nil))
+(def canvas-origin (atom (Coord. 0 0)))
 
 (defn event->coord [event]
   (let [canvasrect (.getBoundingClientRect canvas-element)]
     (Coord. (- (.-clientX event) (.-left canvasrect))
             (- (.-clientY event) (.-top canvasrect)))))
 
+(defn translate-coord [coord]
+  (Coord. (- (:x coord) (:x @canvas-origin))
+          (- (:y coord) (:y @canvas-origin))))
+
+(defn redraw-all-strokes [ctx strokes origin]
+  (drawing/clear-screen ctx)
+  (.restore ctx)
+  (.save ctx)
+  (let [trans-x (:x origin)
+        trans-y (:y origin)]
+    (.translate ctx trans-x trans-y))
+  (doseq [stroke strokes]
+    (drawing/draw-stroke ctx stroke)))
+
 (defn start-stroke [coord]
-    (swap! drawn-strokes conj (Stroke. [coord] @stroke-thickness))
-    (swap! dragging #(-> true)))
+  (let [coord (translate-coord coord)]
+    (swap! drawn-strokes conj (Stroke. [coord] @stroke-thickness))))
 
 (defn finish-stroke []
-    (swap! undone-strokes #())
-    (swap! dragging #(-> false)))
+  (swap! undone-strokes #()))
+
+(defn start-pan [coord]
+  (swap! last-pan-coord #(-> coord)))
+
+(defn finish-pan []
+  (swap! last-pan-coord #(-> nil)))
+
+(defn start-gesture [coord]
+  (swap! dragging #(-> true))
+  (case @input-mode
+    :draw (start-stroke coord)
+    :pan  (start-pan coord)))
+
+(defn finish-gesture []
+  (swap! dragging #(-> false))
+  (case @input-mode
+    :draw (finish-stroke)
+    :pan  (finish-pan)))
 
 (defn mousedown-handler [event]
   (when (= 0 (.-button event))
-    (start-stroke (event->coord event))))
+    (start-gesture (event->coord event))))
 
 (defn add-drawn-coord [coord]
-    (let [from-coord (last-coord @drawn-strokes)]
+    (let [coord (translate-coord coord)
+          from-coord (last-coord @drawn-strokes)]
       (canvas/stroke-width canvas-context @stroke-thickness)
       (drawing/draw-line canvas-context from-coord coord)
       (swap! drawn-strokes extend-last-stroke coord)))
 
+(defn update-pan [coord]
+  (let [trans-x (- (:x coord) (:x @last-pan-coord))
+        trans-y (- (:y coord) (:y @last-pan-coord))]
+    (pathfinder/log (str "translating origin by (" trans-x ", " trans-y ")"))
+    (swap! canvas-origin #(Coord. (+ (:x %) trans-x) (+ (:y %) trans-y)))
+    (swap! last-pan-coord #(-> coord))
+    (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin)))
+
+(defn move-gesture [coord]
+  (pathfinder/log (str @input-mode))
+  (case @input-mode
+    :draw (add-drawn-coord coord)
+    :pan  (update-pan coord)))
+
 (defn mousemove-handler [event]
   (when @dragging
-    (add-drawn-coord (event->coord event))))
+    (move-gesture (event->coord event))))
 
 (defn mouseup-handler [event]
   (when (= 0 (.-button event))
-    (finish-stroke)))
+    (finish-gesture)))
 
 (defn identified-touch [touchlist]
   (let [target-id @current-touch-id
@@ -76,33 +125,28 @@
       (let [touch (first-touch touchlist)]
         (pathfinder/log (.-identifier touch))
         (swap! current-touch-id #(.-identifier touch))
-        (start-stroke (event->coord touch))))))
+        (start-gesture (event->coord touch))))))
 
 (defn touchmove-handler [event]
   (let [touchlist (-> event .getBrowserEvent .-targetTouches)
         touch (identified-touch touchlist)]
     (pathfinder/log (.-identifier touch))
     (when (and (not (nil? touch)) @dragging)
-      (add-drawn-coord (event->coord touch)))))
+      (move-gesture (event->coord touch)))))
 
 (defn touchend-handler [event]
   (let [touchlist (-> event .getBrowserEvent .-changedTouches)
         touch (identified-touch touchlist)]
     (pathfinder/log (.-identifier touch))
     (when-not (nil? touch)
-      (finish-stroke))))
-
-(defn redraw-all-strokes [ctx strokes]
-  (drawing/clear-screen ctx)
-  (doseq [stroke strokes]
-    (drawing/draw-stroke ctx stroke)))
+      (finish-gesture))))
 
 (defn undo-stroke []
   (when-not (empty? @drawn-strokes)
     (let [last-stroke (last @drawn-strokes)]
       (swap! drawn-strokes (comp vec drop-last))
       (swap! undone-strokes conj last-stroke))
-    (redraw-all-strokes canvas-context @drawn-strokes)))
+    (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin)))
 
 (defn redo-stroke []
   (when-not (empty? @undone-strokes)
@@ -122,6 +166,18 @@
   (swap! stroke-thickness #(if (zero? %) % (dec %)))
   (update-statusbar))
 
+(defn change-cssclass [id cssclass]
+  (set! (-> (dom/getElement id) .-className) cssclass))
+
+(defn set-input-mode [mode]
+  (let [other-mode (case mode
+          "draw" "pan"
+          "pan"  "draw")]
+    (pathfinder/log (str "setting input mode to " mode))
+    (change-cssclass (str mode "-mode") "toggle-selected")
+    (change-cssclass (str other-mode "-mode") "toggle-unselected")
+    (swap! input-mode #(keyword mode))))
+
 (defn click-handler [event]
   (let [target-id (-> event .-currentTarget .-id)]
     (case target-id
@@ -129,6 +185,8 @@
       "decrease-thickness" (dec-thickness)
       "undo" (undo-stroke)
       "redo" (redo-stroke)
+      "draw-mode" (set-input-mode "draw")
+      "pan-mode"  (set-input-mode "pan")
       (pathfinder/log (str "unknown target " target-id)))))
 
 (defn setup-click-handler [elem-ids]
@@ -158,13 +216,14 @@
           (-> (.getBoundingClientRect canvas-element) .-width))
     (set! (.-height canvas-element)
           (-> (.getBoundingClientRect canvas-element) .-height))
-    (redraw-all-strokes canvas-context @drawn-strokes)))
+    (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin)))
 
 (defn init []
   (resize-canvas nil)
+  (.save canvas-context)
   (events/listen js/window "resize" resize-canvas)
   (setup-click-handler ["increase-thickness" "decrease-thickness"
-                        "undo" "redo"])
+                        "undo" "redo" "draw-mode" "pan-mode"])
   (setup-input-handler ["stroke-thickness"])
   (add-canvas-handlers
     ["touchmove"  touchmove-handler]

@@ -31,3 +31,13 @@ html, body {
 canvas {
   display: block;
 }
+
+.toggle-selected {
+  background-color: #aaa;
+  padding: 2px;
+}
+
+.toggle-unselected {
+  background-color: #fff;
+  padding: 2px;
+}
