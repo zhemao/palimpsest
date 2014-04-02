@@ -29,3 +29,13 @@
         w (.-width canvas)
         h (.-height canvas)]
       (canvas/clear-rect ctx {:x 0 :y 0 :w w :h h})))
+
+(defn redraw-all-strokes [ctx strokes origin]
+  (clear-screen ctx)
+  (.restore ctx)
+  (.save ctx)
+  (let [trans-x (:x origin)
+        trans-y (:y origin)]
+    (.translate ctx trans-x trans-y))
+  (doseq [stroke strokes]
+    (draw-stroke ctx stroke)))
