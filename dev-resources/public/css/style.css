@@ -41,3 +41,8 @@ canvas {
   background-color: #fff;
   padding: 2px;
 }
+
+#download-link {
+  position: absolute;
+  visibility: hidden;
+}

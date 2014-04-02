@@ -15,7 +15,9 @@
                                         move-gesture resize-canvas
                                         undo-stroke redo-stroke
                                         inc-thickness dec-thickness
-                                        set-thickness init-canvas]]
+                                        set-thickness init-canvas
+                                        get-strokes]]
+            [palimpsest.storage :refer [save-strokes]]
             [palimpsest.types :refer [Coord]]))
 
 (def canvas-element (dom/getElement "canvas"))
@@ -95,6 +97,7 @@
       "redo" (redo-stroke)
       "draw-mode" (set-input-mode "draw")
       "pan-mode"  (set-input-mode "pan")
+      "save" (save-strokes (get-strokes))
       (pathfinder/log (str "unknown target " target-id)))))
 
 (defn setup-click-handler [elem-ids]
@@ -116,7 +119,7 @@
   (init-canvas)
   (events/listen js/window "resize" resize-canvas)
   (setup-click-handler ["increase-thickness" "decrease-thickness"
-                        "undo" "redo" "draw-mode" "pan-mode"])
+                        "undo" "redo" "draw-mode" "pan-mode" "save"])
   (setup-input-handler ["stroke-thickness"])
   (add-canvas-handlers
     ["touchmove"  touchmove-handler]

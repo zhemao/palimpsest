@@ -111,3 +111,6 @@
   (resize-canvas nil)
   (.save canvas-context)
   (canvas/fill-style canvas-context "#000"))
+
+(defn get-strokes []
+  @drawn-strokes)
