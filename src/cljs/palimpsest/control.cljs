@@ -34,11 +34,11 @@
   (swap! last-pan-coord #(-> nil)))
 
 (defn add-drawn-coord [coord]
-    (let [coord (translate-coord coord)
-          from-coord (last-coord @drawn-strokes)]
-      (canvas/stroke-width canvas-context @stroke-thickness)
-      (drawing/draw-line canvas-context from-coord coord)
-      (swap! drawn-strokes extend-last-stroke coord)))
+  (let [coord (translate-coord coord)
+        from-coord (last-coord @drawn-strokes)]
+    (canvas/stroke-width canvas-context @stroke-thickness)
+    (swap! drawn-strokes extend-last-stroke coord)
+    (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin)))
 
 (defn update-pan [coord]
   (let [trans-x (- (:x coord) (:x @last-pan-coord))
@@ -109,7 +109,6 @@
 
 (defn init-canvas []
   (resize-canvas nil)
-  (.save canvas-context)
   (canvas/fill-style canvas-context "#000"))
 
 (defn get-strokes []
