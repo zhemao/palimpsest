@@ -16,8 +16,8 @@
                                         undo-stroke redo-stroke
                                         inc-thickness dec-thickness
                                         set-thickness init-canvas
-                                        get-strokes]]
-            [palimpsest.storage :refer [save-strokes]]
+                                        get-strokes set-strokes]]
+            [palimpsest.storage :refer [save-strokes load-strokes]]
             [palimpsest.types :refer [Coord]]))
 
 (def canvas-element (dom/getElement "canvas"))
@@ -115,9 +115,16 @@
   (doseq [id elem-ids]
     (events/listen (dom/getElement id) "input" input-handler)))
 
+(defn handle-open [event]
+  (let [files (-> event .-target .-files)]
+    (when (> (.-length files) 0)
+      (load-strokes (.item files 0)
+                    (fn [strokes] (set-strokes strokes))))))
+
 (defn init []
   (init-canvas)
   (events/listen js/window "resize" resize-canvas)
+  (events/listen (dom/getElement "open") "change" handle-open)
   (setup-click-handler ["increase-thickness" "decrease-thickness"
                         "undo" "redo" "draw-mode" "pan-mode" "save"])
   (setup-input-handler ["stroke-thickness"])

@@ -11,10 +11,17 @@
 (defn strokes->json [strokes]
   (JSON/stringify (clj->js {:strokes strokes})))
 
-(defn json->strokes [strokes]
-  (let [raw-strokes ((-> strokes JSON/stringify js->clj) "strokes")]
+(defn json->strokes [jsontext]
+  (let [raw-strokes ((-> jsontext JSON/parse js->clj) "strokes")]
     (vec (for [hashmap raw-strokes]
            (hashmap->stroke hashmap)))))
+
+(defn load-strokes [file callback]
+  (let [reader (js/FileReader.)]
+    (set! (.-onload reader)
+          (fn [evt]
+            (callback (json->strokes (-> evt .-target .-result)))))
+    (.readAsText reader file)))
 
 (defn save-strokes [strokes]
   (let [jsondata (strokes->json strokes)

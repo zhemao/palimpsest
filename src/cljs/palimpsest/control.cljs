@@ -114,3 +114,9 @@
 
 (defn get-strokes []
   @drawn-strokes)
+
+(defn set-strokes [strokes]
+  (swap! drawn-strokes #(-> strokes))
+  (swap! undone-strokes #())
+  (swap! canvas-origin #(Coord. 0 0))
+  (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin))
