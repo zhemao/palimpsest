@@ -98,6 +98,7 @@
       "draw-mode" (set-input-mode "draw")
       "pan-mode"  (set-input-mode "pan")
       "save" (save-strokes (get-strokes))
+      "new" (set-strokes [])
       (pathfinder/log (str "unknown target " target-id)))))
 
 (defn setup-click-handler [elem-ids]
@@ -126,7 +127,7 @@
   (events/listen js/window "resize" resize-canvas)
   (events/listen (dom/getElement "open") "change" handle-open)
   (setup-click-handler ["increase-thickness" "decrease-thickness"
-                        "undo" "redo" "draw-mode" "pan-mode" "save"])
+                        "undo" "redo" "draw-mode" "pan-mode" "save" "new"])
   (setup-input-handler ["stroke-thickness"])
   (add-canvas-handlers
     ["touchmove"  touchmove-handler]
