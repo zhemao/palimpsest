@@ -40,10 +40,15 @@
     (swap! drawn-strokes extend-last-stroke coord)
     (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin)))
 
+(defn add-negative [a b]
+  (let [c (+ a b)]
+    (if (> c 0) 0 c)))
+
 (defn update-pan [coord]
   (let [trans-x (- (:x coord) (:x @last-pan-coord))
         trans-y (- (:y coord) (:y @last-pan-coord))]
-    (swap! canvas-origin #(Coord. (+ (:x %) trans-x) (+ (:y %) trans-y)))
+    (swap! canvas-origin #(Coord. (add-negative (:x %) trans-x)
+                                  (add-negative (:y %) trans-y)))
     (swap! last-pan-coord #(-> coord))
     (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin)))
 
