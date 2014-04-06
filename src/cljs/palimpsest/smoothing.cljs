@@ -8,6 +8,8 @@
 
 ; returns the unit vector corresponding to vector a
 (defn v2-normalize [a]
+  (when (and (= 0 (:x a)) (= 0 (:y a)))
+    (.log js/console "Warning! Can't normalize zero vector"))
   (let [mag (v2-mag a)]
     (Coord. (/ (:x a) mag)
             (/ (:y a) mag))))
@@ -151,7 +153,7 @@
          coords params (range (count coords)))
     ; collect max and split-point
     (reduce (fn [[max-dist split-point :as res-pair] [i dist]]
-              (if [>= dist max-dist] [dist i] res-pair))
+              (if (>= dist max-dist) [dist i] res-pair))
             [0.0 (/ (count coords) 2)])))
 
 (defn fit-cubic
@@ -166,7 +168,7 @@
   ([coords tan1 tan2]
     (if (= (count coords) 2)
       ; use the heuristic if there are no intermediate points
-      (wu-barsky-heuristic (first coords) (last coords) tan1 tan2)
+      [(wu-barsky-heuristic (first coords) (last coords) tan1 tan2)]
       (let [iter-error (* fit-error fit-error)
             params (chord-parameterize coords)
             bezier (gen-bezier coords params tan1 tan2)
@@ -179,7 +181,7 @@
                              (nth coords (inc split-point)))]
             (vec (concat
                    (fit-cubic
-                     (subvec coords 0 split-point) tan1
+                     (subvec coords 0 (inc split-point)) tan1
                      (v2-reverse center-tan))
                    (fit-cubic
                       (subvec coords split-point) center-tan tan2)))))))))
@@ -193,6 +195,15 @@
 (defn bezier3-pw-calc [beziers t]
   (let [i (int t)]
     (bezier3-calc (nth beziers i) (- t i))))
+
+; having duplicate adjacent points screws up the distance
+; calculations, so we need to remove them before doing the fitting
+(defn dedup-points [coords]
+  (reduce (fn [result c]
+            (if (= 0 (v2-dist (last result) c))
+              result
+              (conj result c)))
+          [] coords))
 
 (defn interpolate-points [coords desired-seg-len]
   (let [path-len (path-length coords)]
@@ -209,6 +220,9 @@
           (conj (first coords)) vec (conj (last coords)))))))
 
 (defn smooth-stroke [stroke]
-  (Stroke.
-    (interpolate-points (:coords stroke) 10.0)
-    (:thickness stroke)))
+  (let [old-coords (dedup-points (:coords stroke))]
+    (if (= (count old-coords) 2)
+      stroke
+      (Stroke.
+        (interpolate-points old-coords 10.0)
+        (:thickness stroke)))))
