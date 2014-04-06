@@ -113,6 +113,29 @@
     (v2-add (v2-scale (B2 t) (:v2 bezier))
             (v2-scale (B3 t) (:v3 bezier)))))
 
+(defn bezier3-deriv [bezier3]
+  [(v2-scale 3 (v2-sub (:v1 bezier3) (:v0 bezier3)))
+   (v2-scale 3 (v2-sub (:v2 bezier3) (:v1 bezier3)))
+   (v2-scale 3 (v2-sub (:v3 bezier3) (:v2 bezier3)))])
+
+(defn bezier2-calc [[v0 v1 v2] t]
+  (let [tmp (- 1.0 t)
+        b0 (* tmp tmp)
+        b1 (* 2 tmp t)
+        b2 (* t t)]
+    (v2-add (v2-scale b0 v0)
+            (v2-add
+              (v2-scale b1 v1)
+              (v2-scale b2 v2)))))
+
+(defn bezier2-deriv [[v0 v1 v2]]
+  [(v2-scale 2 (v2-sub v1 v0))
+   (v2-scale 2 (v2-sub v2 v1))])
+
+(defn bezier1-calc [[v0 v1] t]
+  (v2-add (v2-scale (- 1.0 t) v0)
+          (v2-scale t v1)))
+
 (defn wu-barsky-heuristic [bez0 bez3 tan1 tan2]
   (let [dist (/ (v2-dist bez0 bez3) 3.0)]
     (Bezier. bez0
@@ -143,7 +166,9 @@
                (v2-add bez3 (v2-scale alpha2 tan2))
                bez3))))
 
-(def fit-error 4.0)
+(def fit-error 16.0)
+(def adjust-error 4.0)
+(def max-adjust-iter 10)
 
 (defn compute-max-error [coords bezier params]
   (->>
@@ -155,6 +180,30 @@
     (reduce (fn [[max-dist split-point :as res-pair] [i dist]]
               (if (>= dist max-dist) [dist i] res-pair))
             [0.0 (/ (count coords) 2)])))
+
+(defn newton-raphson-iter [bezier3 P u]
+  (let [bezier2 (bezier3-deriv bezier3)
+        bezier1 (bezier2-deriv bezier2)
+        Qu (bezier3-calc bezier3 u)
+        Q1u (bezier2-calc bezier2 u)
+        Q2u (bezier1-calc bezier1 u)
+        numer (v2-dot (v2-sub Qu P) Q1u)
+        denom (+ (v2-dot (v2-sub Qu P) Q2u) (v2-dot Q1u Q1u))]
+    (- u (/ numer denom))))
+
+(defn reparameterize [bezier coords params]
+  (vec (map #(newton-raphson-iter bezier %1 %2) coords params)))
+
+(defn adjust-bezier [bezier coords params tan1 tan2 iter-error max-iter]
+  (loop [bezier bezier
+         params params
+         i 0]
+    (let [error (compute-max-error coords bezier params)]
+      (if (or (<= error iter-error) (>= i max-iter))
+        bezier
+        (let [newparams (reparameterize bezier coords params)
+              newbezier (gen-bezier coords newparams tan1 tan2)]
+          (recur newbezier newparams (inc i)))))))
 
 (defn fit-cubic
   ([coords]
@@ -169,12 +218,12 @@
     (if (= (count coords) 2)
       ; use the heuristic if there are no intermediate points
       [(wu-barsky-heuristic (first coords) (last coords) tan1 tan2)]
-      (let [iter-error (* fit-error fit-error)
-            params (chord-parameterize coords)
+      (let [params (chord-parameterize coords)
             bezier (gen-bezier coords params tan1 tan2)
             [max-error split-point] (compute-max-error coords bezier params)]
-        (if (< max-error iter-error)
-          [bezier]
+        (if (< max-error fit-error)
+          [(adjust-bezier bezier coords params tan1 tan2
+                          adjust-error max-adjust-iter)]
           (let [center-tan (v2-center-tangent
                              (nth coords (dec split-point))
                              (nth coords split-point)
