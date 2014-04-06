@@ -143,7 +143,7 @@
                (v2-add bez3 (v2-scale alpha2 tan2))
                bez3))))
 
-(def fit-error 2.0)
+(def fit-error 4.0)
 
 (defn compute-max-error [coords bezier params]
   (->>
