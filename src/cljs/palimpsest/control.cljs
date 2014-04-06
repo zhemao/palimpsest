@@ -15,6 +15,7 @@
 (def drawn-strokes (atom []))
 (def undone-strokes (atom '()))
 (def stroke-thickness (atom 1))
+(def smoothing-on (atom true))
 
 (defn translate-coord [coord]
   (Coord. (- (:x coord) (:x @canvas-origin))
@@ -25,9 +26,10 @@
     (swap! drawn-strokes conj (Stroke. [coord] @stroke-thickness))))
 
 (defn finish-stroke []
-  (swap! drawn-strokes
-         #(conj (vec (drop-last %)) (smooth-stroke (last %))))
-  (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin)
+  (when @smoothing-on
+    (swap! drawn-strokes
+           #(conj (vec (drop-last %)) (smooth-stroke (last %))))
+    (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin))
   (swap! undone-strokes #()))
 
 (defn start-pan [coord]
@@ -121,6 +123,9 @@
 
 (defn get-strokes []
   @drawn-strokes)
+
+(defn enable-smoothing [en]
+  (swap! smoothing-on #(-> en)))
 
 (defn set-strokes [strokes]
   (swap! drawn-strokes #(-> strokes))

@@ -15,7 +15,9 @@
                                         undo-stroke redo-stroke
                                         inc-thickness dec-thickness
                                         set-thickness init-canvas
-                                        get-strokes set-strokes]]
+                                        get-strokes set-strokes
+                                        enable-smoothing]]
+            [palimpsest.smoothing :refer [set-segment-length]]
             [palimpsest.storage :refer [save-strokes load-strokes]]
             [palimpsest.types :refer [Coord]]))
 
@@ -98,6 +100,7 @@
       "pan-mode"  (set-input-mode "pan")
       "save" (save-strokes (get-strokes))
       "new" (set-strokes [])
+      "smoothing" (enable-smoothing (-> event .-currentTarget .-checked))
       (.log js/console (str "unknown target " target-id)))))
 
 (defn setup-click-handler [elem-ids]
@@ -126,8 +129,9 @@
   (events/listen js/window "resize" resize-canvas)
   (events/listen (dom/getElement "open") "change" handle-open)
   (setup-click-handler ["increase-thickness" "decrease-thickness"
-                        "undo" "redo" "draw-mode" "pan-mode" "save" "new"])
-  (setup-input-handler ["stroke-thickness"])
+                        "undo" "redo" "draw-mode" "pan-mode" "save" "new"
+                        "smoothing"])
+  (setup-input-handler ["stroke-thickness" "smoothing"])
   (add-canvas-handlers
     ["touchmove"  touchmove-handler]
     ["touchstart" touchstart-handler]

@@ -268,10 +268,12 @@
           ; then add last point to end
           (conj (first coords)) vec (conj (last coords)))))))
 
+(def segment-length 10.0)
+
 (defn smooth-stroke [stroke]
   (let [old-coords (dedup-points (:coords stroke))]
     (if (= (count old-coords) 2)
       stroke
       (Stroke.
-        (interpolate-points old-coords 10.0)
+        (interpolate-points old-coords segment-length)
         (:thickness stroke)))))
