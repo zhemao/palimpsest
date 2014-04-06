@@ -3,6 +3,7 @@
             [monet.canvas :as canvas]
             [palimpsest.pathfinder :as pathfinder]
             [palimpsest.drawing :as drawing :refer [redraw-all-strokes]]
+            [palimpsest.smoothing :refer [smooth-stroke]]
             [palimpsest.types :refer [Coord Stroke last-coord
                                       extend-last-stroke]]))
 
@@ -25,6 +26,9 @@
     (swap! drawn-strokes conj (Stroke. [coord] @stroke-thickness))))
 
 (defn finish-stroke []
+  (swap! drawn-strokes
+         #(conj (vec (drop-last %)) (smooth-stroke (last %))))
+  (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin)
   (swap! undone-strokes #()))
 
 (defn start-pan [coord]

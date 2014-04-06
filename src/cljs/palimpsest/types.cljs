@@ -22,3 +22,6 @@
 (defn extend-last-stroke [stroke-seq coord]
   (let [new-stroke (add-coord (last stroke-seq) coord)]
     (conj (vec (drop-last stroke-seq)) new-stroke)))
+
+; a cubic bezier function represented by its control points
+(defrecord Bezier [v0 v1 v2 v3])
