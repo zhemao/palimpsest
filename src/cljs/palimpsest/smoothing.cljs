@@ -6,10 +6,13 @@
   (Math/sqrt (+ (* (:x a) (:x a))
                 (* (:y a) (:y a)))))
 
+(defn zero-vector? [a]
+  (and (= 0 (:x a)) (= 0 (:y a))))
+
 ; returns the unit vector corresponding to vector a
 (defn v2-normalize [a]
-  (when (and (= 0 (:x a)) (= 0 (:y a)))
-    (.log js/console "Warning! Can't normalize zero vector"))
+  (when (zero-vector? a)
+    (throw "Can't normalize zero vector"))
   (let [mag (v2-mag a)]
     (Coord. (/ (:x a) mag)
             (/ (:y a) mag))))
@@ -27,14 +30,6 @@
 (defn v2-tangent [a b]
   (v2-normalize (v2-sub a b)))
 
-; computes the tangent of the center point b
-; the direction is in the "rightwards" direction
-(defn v2-center-tangent [a b c]
-  (let [left-tan (v2-sub b a)
-        right-tan (v2-sub c b)
-        avg-tan (v2-add left-tan right-tan)]
-    (v2-normalize avg-tan)))
-
 (defn v2-dist [a b]
   (v2-mag (v2-sub a b)))
 
@@ -48,6 +43,19 @@
   (+ (* (:x a) (:x b))
      (* (:y a) (:y b))))
 
+; computes the tangent of the center point b
+; returns both the "leftward-pointing" and "rightward-pointing" tangents
+(defn v2-center-tangents [a b c]
+  (let [left-tan (v2-tangent b a)
+        right-tan (v2-tangent c b)
+        avg-tan (v2-add left-tan right-tan)]
+    (if (zero-vector? avg-tan)
+      ; if left and right tangents are exactly opposite
+      ; normalization of the average would cause divide-by-zero
+      ; in this case, just give the normalized left and right tangents
+      [(v2-reverse left-tan) right-tan]
+      (let [normed-tan (v2-normalize avg-tan)]
+        [(v2-reverse normed-tan) normed-tan]))))
 
 (defn parameter-normalize [params]
   (let [last-t (last params)]
@@ -205,6 +213,15 @@
               newbezier (gen-bezier coords newparams tan1 tan2)]
           (recur newbezier newparams (inc i)))))))
 
+; having duplicate adjacent points screws up the distance
+; calculations, so we need to remove them before doing the fitting
+(defn dedup-points [coords]
+  (reduce (fn [result c]
+            (if (= 0 (v2-dist (last result) c))
+              result
+              (conj result c)))
+          [] coords))
+
 (defn fit-cubic
   ([coords]
     (fit-cubic coords
@@ -224,16 +241,15 @@
         (if (< max-error fit-error)
           [(adjust-bezier bezier coords params tan1 tan2
                           adjust-error max-adjust-iter)]
-          (let [center-tan (v2-center-tangent
-                             (nth coords (dec split-point))
-                             (nth coords split-point)
-                             (nth coords (inc split-point)))]
+          (let [[left-tan right-tan] (v2-center-tangents
+                                       (nth coords (dec split-point))
+                                       (nth coords split-point)
+                                       (nth coords (inc split-point)))]
             (vec (concat
                    (fit-cubic
-                     (subvec coords 0 (inc split-point)) tan1
-                     (v2-reverse center-tan))
+                     (subvec coords 0 (inc split-point)) tan1 left-tan)
                    (fit-cubic
-                      (subvec coords split-point) center-tan tan2)))))))))
+                      (subvec coords split-point) right-tan tan2)))))))))
 
 (defn path-length [coords]
   (first (reduce
@@ -244,15 +260,6 @@
 (defn bezier3-pw-calc [beziers t]
   (let [i (int t)]
     (bezier3-calc (nth beziers i) (- t i))))
-
-; having duplicate adjacent points screws up the distance
-; calculations, so we need to remove them before doing the fitting
-(defn dedup-points [coords]
-  (reduce (fn [result c]
-            (if (= 0 (v2-dist (last result) c))
-              result
-              (conj result c)))
-          [] coords))
 
 (defn interpolate-points [coords desired-seg-len]
   (let [path-len (path-length coords)]
