@@ -1,7 +1,6 @@
 (ns palimpsest.control
   (:require [goog.dom :as dom]
             [monet.canvas :as canvas]
-            [palimpsest.pathfinder :as pathfinder]
             [palimpsest.drawing :as drawing :refer [redraw-all-strokes]]
             [palimpsest.smoothing :refer [smooth-stroke]]
             [palimpsest.types :refer [Coord Stroke last-coord

@@ -9,7 +9,6 @@
   (:require [goog.dom :as dom]
             [goog.events :as events]
             [monet.canvas :as canvas]
-            [palimpsest.pathfinder :as pathfinder]
             [palimpsest.drawing :as drawing :refer [redraw-all-strokes]]
             [palimpsest.control :refer [start-gesture finish-gesture
                                         move-gesture resize-canvas
@@ -59,21 +58,21 @@
   (let [touchlist (-> event .getBrowserEvent .-targetTouches)]
     (when (not= (.-length touchlist) 0)
       (let [touch (first-touch touchlist)]
-        (pathfinder/log (.-identifier touch))
+        (.log js/console (.-identifier touch))
         (swap! current-touch-id #(.-identifier touch))
         (start-gesture @input-mode (event->coord touch))))))
 
 (defn touchmove-handler [event]
   (let [touchlist (-> event .getBrowserEvent .-targetTouches)
         touch (identified-touch touchlist)]
-    (pathfinder/log (.-identifier touch))
+    (.log js/console (.-identifier touch))
     (when-not (nil? touch)
       (move-gesture @input-mode (event->coord touch)))))
 
 (defn touchend-handler [event]
   (let [touchlist (-> event .getBrowserEvent .-changedTouches)
         touch (identified-touch touchlist)]
-    (pathfinder/log (.-identifier touch))
+    (.log js/console (.-identifier touch))
     (when-not (nil? touch)
       (finish-gesture @input-mode))))
 
@@ -99,7 +98,7 @@
       "pan-mode"  (set-input-mode "pan")
       "save" (save-strokes (get-strokes))
       "new" (set-strokes [])
-      (pathfinder/log (str "unknown target " target-id)))))
+      (.log js/console (str "unknown target " target-id)))))
 
 (defn setup-click-handler [elem-ids]
   (doseq [id elem-ids]
@@ -110,7 +109,7 @@
         value (.-value (dom/getElement target-id))]
     (case target-id
       "stroke-thickness" (set-thickness (int value))
-      (pathfinder/log (str "Unknown target " target-id)))))
+      (.log js/console (str "Unknown target " target-id)))))
 
 (defn setup-input-handler [elem-ids]
   (doseq [id elem-ids]
