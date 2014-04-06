@@ -30,23 +30,19 @@
         h (.-height canvas)]
       (canvas/clear-rect ctx {:x 0 :y 0 :w w :h h})))
 
-(defn calc-buffer-dim [normal-dim offset-dim]
+(defn calc-expanded-dim [normal-dim offset-dim]
   (if (< offset-dim 0)
     (- normal-dim offset-dim)
     normal-dim))
 
 (defn redraw-all-strokes [ctx strokes origin]
   (clear-screen ctx)
-  (let [buffer-canvas (.createElement js/document "canvas")
-        buffer-ctx (.getContext buffer-canvas "2d")
-        canvas-width (-> ctx .-canvas .-width)
-        canvas-height (-> ctx .-canvas .-height)
-        trans-x (:x origin)
-        trans-y (:y origin)
-        buffer-width (calc-buffer-dim canvas-width trans-x)
-        buffer-height (calc-buffer-dim canvas-height trans-y)]
-    (set! (.-width buffer-canvas) buffer-width)
-    (set! (.-height buffer-canvas) buffer-height)
+  ; before doing anything, save the current state of the canvas
+  (canvas/save ctx)
+  (let [trans-x (:x origin)
+        trans-y (:y origin)]
+    (canvas/translate ctx trans-x trans-y)
     (doseq [stroke strokes]
-      (draw-stroke buffer-ctx stroke))
-    (canvas/draw-image ctx buffer-canvas trans-x trans-y)))
+      (draw-stroke ctx stroke)))
+  ; restore the canvas back to its original position
+  (canvas/restore ctx))

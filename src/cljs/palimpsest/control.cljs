@@ -1,7 +1,7 @@
 (ns palimpsest.control
   (:require [goog.dom :as dom]
             [monet.canvas :as canvas]
-            [palimpsest.drawing :as drawing :refer [redraw-all-strokes]]
+            [palimpsest.drawing :refer [redraw-all-strokes]]
             [palimpsest.smoothing :refer [smooth-stroke]]
             [palimpsest.types :refer [Coord Stroke last-coord
                                       extend-last-stroke]]))
@@ -87,7 +87,7 @@
     (let [last-undone (first @undone-strokes)]
       (swap! drawn-strokes conj last-undone)
       (swap! undone-strokes rest)
-      (drawing/draw-stroke canvas-context last-undone))))
+      (redraw-all-strokes canvas-context @drawn-strokes @canvas-origin))))
 
 (defn resize-canvas [_]
   (let [title-rect  (.getBoundingClientRect (dom/getElement "titlebar"))
