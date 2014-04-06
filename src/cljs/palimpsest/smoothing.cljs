@@ -168,7 +168,7 @@
 
 (def fit-error 16.0)
 (def adjust-error 4.0)
-(def max-adjust-iter 10)
+(def max-adjust-iter 4)
 
 (defn compute-max-error [coords bezier params]
   (->>
